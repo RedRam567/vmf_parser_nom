@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 #![warn(rustdoc::private_intra_doc_links)]
 //! A parser for the Valve map format.
-//! Also a provided convience [macro](crate::traverse) for iterating over sub blocks using the [traversal](https://crates.io/crates/traversal) crate.
+//! Also a provided convience [macro](crate::traverse) for iterating over subblocks using the [traversal](https://crates.io/crates/traversal) crate.
 //!
 //! # Vmf Format
 //! 
 //! See [`parse()`] for the implementation.
 //! Read more about the vmf format on [Valve Developer Community](https://developer.valvesoftware.com/wiki/Valve_Map_Format)
+//! 
 //! ```vmf
 #![doc = "// This is a comment.
 ClassName_1
