@@ -1,6 +1,13 @@
 [package]
 name = "vmf_parser_nom"
 version = "0.1.0"
+authors = ["RedRam"]
+description = "A parser for the Valve map format."
+repository = "https://github.com/RedRam567/vmf_parser_nom"
+readme = "README.md"
+keywords = ["vmf", "parser", "valve", "hammer"]
+categories = ["parsing"]
+license = "MIT"
 edition = "2021"
 
 [dependencies]

@@ -20,6 +20,7 @@ ClassName_1
 	ClassName_3
 	{
 	}
+}
 ```
 
 # Example
