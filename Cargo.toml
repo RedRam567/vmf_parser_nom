@@ -1,0 +1,17 @@
+[package]
+name = "vmf_parser_nom"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nom = "7"
+# union to save dat 1 usize
+# smallvec = { version = "1", features = ["const_new", "union", "const_generics"], optional = true }
+
+[dev-dependencies]
+traversal = "0.1.2"
+
+# [features]
+# default = ["owned"]
+# owned = []
+# arena = ["smallvec"]
