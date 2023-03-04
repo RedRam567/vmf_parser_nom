@@ -6,7 +6,7 @@ description = "A parser for the Valve map format."
 repository = "https://github.com/RedRam567/vmf_parser_nom"
 readme = "README.md"
 keywords = ["vmf", "parser", "valve", "hammer"]
-categories = ["parsing"]
+categories = ["parser-implementations"]
 license = "MIT"
 edition = "2021"
 
