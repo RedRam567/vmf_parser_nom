@@ -1,6 +1,6 @@
 # vmf_parser_nom
 
-![Crates.io](https://img.shields.io/crates/v/vmf_parser_nom)
+[![Crates.io](https://img.shields.io/crates/v/vmf_parser_nom)](https://crates.io/crates/vmf_parser_nom)
 
 A parser for the Valve map format written in Rust.
 Also a provided convience macro for iterating over subblocks using the [traversal](https://crates.io/crates/traversal) crate.
