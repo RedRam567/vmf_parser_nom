@@ -1,5 +1,10 @@
 //! Abstract syntax tree representing a vmf file.
-use std::fmt::{self, Display, Write};
+
+mod display;
+
+pub use display::*;
+
+use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
 
 /// Padding for [`PadAdapter`]
@@ -34,21 +39,6 @@ pub struct Property<K, V> {
     pub value: V,
 }
 
-/// Helper struct for pretty printing struct like objects.
-/// When nested, each adapter keeps track wether it should print padding.
-/// See <https://github.com/rust-lang/rust/blob/master/library/core/src/fmt/builders.rs>
-#[doc(hidden)]
-struct PadAdapter<'a> {
-    buf: &'a mut dyn fmt::Write,
-    on_newline: bool,
-}
-
-impl<'a> PadAdapter<'a> {
-    fn new(buf: &'a mut dyn fmt::Write) -> Self {
-        Self { buf, on_newline: false }
-    }
-}
-
 impl<S> Vmf<S> {
     pub const ROOT_NAME: &str = "root";
 
@@ -75,7 +65,7 @@ impl<S> Block<S> {
     }
 
     /// Iterates over the sub blocks of this block. Not any of the children's children though.
-    /// [`traverse`](crate::traverse) uses this.
+    /// [`traverse`](crate::traverse) uses this. TODO:
     pub fn iter_children(&self) -> impl Iterator<Item = &Self> {
         self.blocks.iter()
     }
@@ -86,6 +76,8 @@ impl<S, V> Property<S, V> {
         Self { key: key.into(), value: value.into() }
     }
 }
+
+// Trait impls
 
 impl<'a, S: From<&'a str>> Default for Vmf<S> {
     fn default() -> Self {
@@ -122,60 +114,5 @@ impl<S> DerefMut for Vmf<S> {
 impl<S> From<Vmf<S>> for Block<S> {
     fn from(vmf: Vmf<S>) -> Self {
         vmf.inner
-    }
-}
-
-impl<S: Display> Display for Vmf<S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // too bad there isnt a better way to do this
-        let mut iter = self.inner.blocks.iter().peekable();
-        while let Some(block) = iter.next() {
-            if iter.peek().is_none() {
-                // don't print newline on last iteration
-                write!(f, "{block}")?;
-            } else {
-                writeln!(f, "{block}")?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<S: Display> Display for Block<S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}", self.name)?;
-
-        let mut adapter = PadAdapter::new(f);
-        writeln!(adapter, "{{")?;
-        for prop in self.props.iter() {
-            writeln!(adapter, "{prop}")?;
-        }
-        for block in self.blocks.iter() {
-            writeln!(adapter, "{block}")?;
-        }
-
-        write!(f, "}}")?;
-        Ok(())
-    }
-}
-
-impl<K: Display, V: Display> Display for Property<K, V> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\"{}\" \"{}\"", self.key, self.value)
-    }
-}
-
-impl<'a> fmt::Write for PadAdapter<'a> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        for s in s.split_inclusive('\n') {
-            if self.on_newline {
-                self.buf.write_str(FMT_PADDING)?;
-            }
-
-            self.on_newline = s.ends_with('\n');
-            self.buf.write_str(s)?;
-        }
-
-        Ok(())
     }
 }
