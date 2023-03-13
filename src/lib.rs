@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![warn(rustdoc::private_intra_doc_links)]
 //! A parser for the Valve map format.
 //! Also a provided convience [macro](crate::traverse) for iterating over subblocks using the [traversal](https://crates.io/crates/traversal) crate.

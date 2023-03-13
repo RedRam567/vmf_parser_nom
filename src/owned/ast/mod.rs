@@ -4,7 +4,6 @@ mod display;
 
 pub use display::*;
 
-use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
 
 /// Padding for [`PadAdapter`]
@@ -74,6 +73,13 @@ impl<S> Block<S> {
 impl<S, V> Property<S, V> {
     pub fn new<T: Into<S>, U: Into<V>>(key: T, value: U) -> Self {
         Self { key: key.into(), value: value.into() }
+    }
+}
+
+impl<S: AsRef<str>, V> Property<S, V> {
+    /// Checks if the key is "id".
+    pub fn is_id(&self) -> bool {
+        self.key.as_ref() == "id"
     }
 }
 
