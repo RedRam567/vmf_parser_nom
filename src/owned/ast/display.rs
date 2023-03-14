@@ -16,11 +16,26 @@ impl<'a> PadAdapter<'a> {
     }
 }
 
-/// Stores the current max ids for the TODO: ALTERNET DISP.
+impl fmt::Write for PadAdapter<'_> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for s in s.split_inclusive('\n') {
+            if self.on_newline {
+                self.buf.write_str(FMT_PADDING)?;
+            }
+
+            self.on_newline = s.ends_with('\n');
+            self.buf.write_str(s)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Stores the current max ids for [`Block::fmt_new_ids`]
 /// Does not store/mess with visgroup ids or group ids as those are referenced
 /// by the `Editor` info for entities
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-struct IdState {
+pub struct IdState {
     max_world_id: i32,
     max_solid_id: i32,
     max_side_id: i32,
@@ -30,7 +45,9 @@ struct IdState {
 impl<S: Display + AsRef<str>> Block<S> {
     // TODO: dyn or impl, both work
     /// The [`Display`] alt implementation.
-    fn fmt_new_ids(&self, f: &mut dyn Write, state: &mut IdState) -> fmt::Result {
+    /// Generates new ids for solids, sides, entities, and worlds.
+    /// Disregards any existing id (id can be omitted).
+    pub fn fmt_new_ids(&self, f: &mut dyn Write, state: &mut IdState) -> fmt::Result {
         writeln!(f, "{}", self.name)?;
         let mut adapter = PadAdapter::new(f);
         writeln!(adapter, "{{")?;
@@ -73,8 +90,9 @@ impl<S: Display + AsRef<str>> Block<S> {
                 state.max_entity_id
             }
             _ => {
-                #[cfg(debug_assertions)]
-                eprintln!("Unknown class `{}` with id property, ignoring", self.name);
+                // ignore
+                // #[cfg(debug_assertions)]
+                // eprintln!("Unknown class `{}` with id property, ignoring", self.name);
                 writeln!(f, "{self}")?;
                 return Ok(());
             }
@@ -88,7 +106,7 @@ impl<S: Display + AsRef<str>> Block<S> {
 impl<S: Display + AsRef<str>> Display for Vmf<S> {
     /// Formats the value using the given formatter. Alternate flag `{:#}` will
     /// generate new ids for solids, sides, entities, and worlds.
-    /// So the id field can be ommited in that case.
+    /// Disregards any existing id (id can be omitted).
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let is_alternate = f.alternate();
         let mut state = IdState::default();
@@ -134,36 +152,19 @@ impl<K: Display, V: Display> Display for Property<K, V> {
     }
 }
 
-impl fmt::Write for PadAdapter<'_> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        for s in s.split_inclusive('\n') {
-            if self.on_newline {
-                self.buf.write_str(FMT_PADDING)?;
-            }
-
-            self.on_newline = s.ends_with('\n');
-            self.buf.write_str(s)?;
-        }
-
-        Ok(())
-    }
-}
-
 // most other parsing/display tests are in `parsers` module
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-
-    const INPUT: &str = r#"world {}
+    const INPUT_ID: &str = r#"world {}
 world{ "id" "O_O two worlds incredibly rare/dumb but supported" }
 solid { 
-    "id" "not a number, hehe"
+    "id" "not a number"
     side { "id" "42" }
     side { "id" "420" }
     side { "id" "69" }
 }
-solid { "id" "nan" }
+solid { "id" "infinity" }
 entity {}
 entity { entity {} }
 "#;
@@ -183,10 +184,10 @@ entity { "id" "1" }
 entity { "id" "2" entity { "id" "3" } }
 "#;
         let truth = crate::parse::<&str, ()>(truth_str).unwrap();
-        let input = crate::parse::<&str, ()>(INPUT).unwrap();
+        let input = crate::parse::<&str, ()>(INPUT_ID).unwrap();
         let output_str = format!("{input:#}");
         let output = crate::parse::<&str, ()>(&output_str).unwrap();
-        
+
         eprintln!("{output_str}");
         assert_eq!(truth, output);
     }

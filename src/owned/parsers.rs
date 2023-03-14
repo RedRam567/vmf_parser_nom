@@ -15,7 +15,10 @@ pub(crate) mod nom_prelude {
     };
 }
 
-use crate::{owned::ast::{Block, Property, Vmf}};
+use crate::{
+    nom_helpers::ParseErrorExt,
+    owned::ast::{Block, Property, Vmf},
+};
 use nom_prelude::*;
 
 /// Parses a [`Vmf`]. Discards any whitespace.
@@ -43,8 +46,6 @@ where
 
     // manual `alt` implementation to allow break or pushing or smth
     let mut input = input;
-    let mut has_ending_brace = false;
-    // while !input.is_empty() {
     loop {
         // ugly loop
         if let Ok((i, prop)) = property::<_, E>(input) {
@@ -55,34 +56,17 @@ where
             input = i;
         } else if let Ok((i, ())) = ignorable::<E>(input) {
             input = i;
-        // } else if let Ok((i, _)) = ignore_whitespace(char::<_, E>('}'))(input) {
-        } else if let Ok((i, _)) = close_brace::<E>(input) {
+        } else if let Ok((i, ())) = close_brace::<E>(input) {
             input = i;
-            has_ending_brace = true;
             break;
         } else if input.is_empty() {
-            // needed for some reason, cant use if guard
-            panic!("reached eof, expecting close brace");
-            break;
+            return Err(E::from_context(input, "expected '}' found EOF").into_err());
         } else {
-            return Err(nom::Err::Error(ContextError::add_context(
-                input,
-                "no parsers matched in block",
-                ParseError::from_error_kind(input, ErrorKind::Fail),
-            )));
-            // return VerboseError::from_context(input, "no parsers matched in block").into_err_error();
+            return Err(E::from_context(input, "no parsers matched in block").into_err());
         }
     }
 
-    if has_ending_brace {
-        Ok((input, Block { name: name.into(), props, blocks }))
-    } else {
-        Err(nom::Err::Error(ContextError::add_context(
-            input,
-            "missing } in block",
-            ParseError::from_error_kind(input, ErrorKind::Fail),
-        )))
-    }
+    Ok((input, Block { name: name.into(), props, blocks }))
 }
 
 // Parses a [`Property`] value in the form `\s"TEXT"\s"TEXT"\s`. Where `\s` zero or more whitespace according to [`multispace0`].
@@ -205,6 +189,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::nom_helpers::NomErrExt;
+
     use super::*;
 
     const INPUT: &str = "ClassName_1
@@ -219,7 +205,7 @@ mod tests {
 \t{
 \t}
 }";
-    const INPUT_NO_WHITE: &str = "ClassName_1{\"Property_1\"\"Value_1\"\"Property_2\"\"Value_2\"ClassName_2{\"Property_1\"\"Value_1\"}ClassName_3{}}";
+    const INPUT_NO_WHITESPACE: &str = r#"ClassName_1{"Property_1""Value_1""Property_2""Value_2"ClassName_2{"Property_1""Value_1"}ClassName_3{}}"#;
 
     #[test]
     fn block_test() {
@@ -259,18 +245,23 @@ ClassName_1 {
                 Block::new("ClassName_3", vec![], vec![]),
             ],
         );
-        let (i, output) = super::block::<&str, VerboseError<_>>(input).unwrap();
+        let (i, output) = block::<&str, VerboseError<_>>(input).unwrap();
         eprintln!("{output}");
         eprintln!("result input {i:?}");
         assert_eq!(truth, output);
         assert!(i.is_empty());
 
-        let input="class{";
-        let output = block::<&str, VerboseError<_>>(input).unwrap_err();
-        let nom::Err::Error(output) = output else {
-            panic!()
-        };
-        panic!("{:?}", output.errors);
+        let input = "class{";
+        let output = block::<&str, VerboseError<_>>(input).unwrap_err().unwrap_error();
+        assert_eq!(
+            VerboseError {
+                errors: vec![
+                    ("", VerboseErrorKind::Nom(ErrorKind::Fail)),
+                    ("", VerboseErrorKind::Context("expected '}' found EOF"))
+                ]
+            },
+            output
+        );
     }
 
     #[test]
@@ -296,9 +287,10 @@ ClassName_1 {
         let vmf = crate::parse::<&str, VerboseError<_>>(INPUT).unwrap();
         let output = vmf.to_string();
 
-        let vmf_no_white = crate::parse::<&str, VerboseError<_>>(INPUT_NO_WHITE).unwrap();
+        let vmf_no_white = crate::parse::<&str, VerboseError<_>>(INPUT_NO_WHITESPACE).unwrap();
         let output_no_white = vmf_no_white.to_string();
 
+        // parse then display are equal
         assert_eq!(INPUT, output);
         assert_eq!(INPUT, output_no_white);
         assert_eq!(output, output_no_white);

@@ -19,9 +19,9 @@ impl<E> NomErrExt<E> for nom::Err<E> {
 }
 
 /// Helper methods that should be in [`nom`] already.
-pub trait ParseErrorExt<I, E>
+pub trait ParseErrorExt<I>
 where
-    Self: ParseError<I>,
+    Self: Sized
 {
     /// Create [`ParseError`] from input and context.
     fn from_context(input: I, ctx: &'static str) -> Self;
@@ -31,13 +31,13 @@ where
         nom::Err::Error(self)
     }
 
-    /// Wrap in [`Result<nom::Err>`] error.
-    fn into_err_error<T>(self) -> Result<T, nom::Err<Self>> {
-        Err(self.into_err())
-    }
+    // /// Wrap in [`Result<nom::Err>`] error.
+    // fn into_err_error<T>(self) -> Result<T, nom::Err<Self>> {
+    //     Err(self.into_err())
+    // }
 }
 
-impl<T, I, E> ParseErrorExt<I, E> for T
+impl<T, I> ParseErrorExt<I> for T
 where
     T: ParseError<I> + ContextError<I>,
     I: Clone,
