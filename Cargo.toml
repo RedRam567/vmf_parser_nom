@@ -1,6 +1,6 @@
 [package]
 name = "vmf_parser_nom"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["RedRam"]
 description = "A parser for the Valve map format."
 repository = "https://github.com/RedRam567/vmf_parser_nom"

@@ -42,6 +42,15 @@ pub struct IdState {
     max_entity_id: i32,
 }
 
+impl<S: Display + AsRef<str>> Vmf<S> {
+    /// Convert into a `String`. [`Display`] with alternate flag `{:#}` does the same thing.
+    /// Generates new ids for solids, sides, entities, and worlds.
+    /// Disregards any existing id (id can be omitted).
+    pub fn to_string_new_ids(&self) -> String {
+        format!("{self:#}")
+    }
+}
+
 impl<S: Display + AsRef<str>> Block<S> {
     // TODO: dyn or impl, both work
     /// The [`Display`] alt implementation.

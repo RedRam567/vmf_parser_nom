@@ -11,11 +11,11 @@ Read more about the vmf format on [Valve Developer Community](https://developer.
 // This is a comment.
 ClassName_1
 {
-	\"Property_1\" \"Value_1\"
-	\"Property_2\" \"Value_2\"
+	"Property_1" "Value_1"
+	"Property_2" "Value_2"
 	ClassName_2
 	{
-		\"Property_1\" \"Value_1\"
+		"Property_1" "Value_1"
 	}
 	ClassName_3
 	{
