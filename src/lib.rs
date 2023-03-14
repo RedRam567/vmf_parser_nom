@@ -76,6 +76,7 @@ ClassName_1
 
 mod owned;
 pub use owned::*;
+mod nom_helpers;
 
 // dumb workaround for doc comments not interpreting \n
 // and re-exports appending original documentation for some reason

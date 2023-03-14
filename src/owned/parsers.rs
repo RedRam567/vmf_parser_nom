@@ -15,7 +15,7 @@ pub(crate) mod nom_prelude {
     };
 }
 
-use crate::owned::ast::{Block, Property, Vmf};
+use crate::{owned::ast::{Block, Property, Vmf}};
 use nom_prelude::*;
 
 /// Parses a [`Vmf`]. Discards any whitespace.
@@ -55,20 +55,22 @@ where
             input = i;
         } else if let Ok((i, ())) = ignorable::<E>(input) {
             input = i;
-        } else if let Ok((i, _)) = ignore_whitespace(char::<_, E>('}'))(input) {
+        // } else if let Ok((i, _)) = ignore_whitespace(char::<_, E>('}'))(input) {
+        } else if let Ok((i, _)) = close_brace::<E>(input) {
             input = i;
             has_ending_brace = true;
             break;
         } else if input.is_empty() {
             // needed for some reason, cant use if guard
+            panic!("reached eof, expecting close brace");
             break;
         } else {
-            // nom moment
             return Err(nom::Err::Error(ContextError::add_context(
                 input,
                 "no parsers matched in block",
                 ParseError::from_error_kind(input, ErrorKind::Fail),
             )));
+            // return VerboseError::from_context(input, "no parsers matched in block").into_err_error();
         }
     }
 
@@ -262,6 +264,13 @@ ClassName_1 {
         eprintln!("result input {i:?}");
         assert_eq!(truth, output);
         assert!(i.is_empty());
+
+        let input="class{";
+        let output = block::<&str, VerboseError<_>>(input).unwrap_err();
+        let nom::Err::Error(output) = output else {
+            panic!()
+        };
+        panic!("{:?}", output.errors);
     }
 
     #[test]
