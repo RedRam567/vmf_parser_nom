@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt::{self, Display, Write};
 
+// TODO: dyn or impl/trait, both work. Can be nested PadAdapter or bare formatter
 /// Helper struct for pretty printing struct like objects.
 /// When nested, each adapter keeps track wether it should print padding.
 /// See <https://github.com/rust-lang/rust/blob/master/library/core/src/fmt/builders.rs>
@@ -16,52 +17,44 @@ impl<'a> PadAdapter<'a> {
 }
 
 /// Stores the current max ids for the TODO: ALTERNET DISP.
-/// Does not store visgroup ids or group ids as those are referenced by the `Editor` info for entities
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IdState {
+/// Does not store/mess with visgroup ids or group ids as those are referenced
+/// by the `Editor` info for entities
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct IdState {
     max_world_id: i32,
     max_solid_id: i32,
     max_side_id: i32,
     max_entity_id: i32,
 }
 
-impl Default for IdState {
-    fn default() -> Self {
-        Self { max_world_id: 1, max_solid_id: 1, max_side_id: 1, max_entity_id: 1 }
-    }
-}
-
 impl<S: Display + AsRef<str>> Block<S> {
-    /// Used by the [`Display`] alt implementation.
-    fn fmt_new_ids(&self, f: &mut fmt::Formatter<'_>, state: &mut IdState) -> fmt::Result {
+    // TODO: dyn or impl, both work
+    /// The [`Display`] alt implementation.
+    fn fmt_new_ids(&self, f: &mut dyn Write, state: &mut IdState) -> fmt::Result {
         writeln!(f, "{}", self.name)?;
-        let is_alternate = f.alternate();
         let mut adapter = PadAdapter::new(f);
         writeln!(adapter, "{{")?;
 
-        // props
-        if is_alternate {
-            self.write_new_id(&mut adapter, state)?;
-        }
+        self.write_new_id(&mut adapter, state)?;
         for prop in self.props.iter() {
-            if !is_alternate && prop.is_id() {
+            if !prop.is_id() {
                 writeln!(adapter, "{prop}")?;
             }
-            writeln!(adapter, "{prop}")?;
         }
 
-        // blocks
         for block in self.blocks.iter() {
-            writeln!(adapter, "{block}")?;
+            block.fmt_new_ids(&mut adapter, state)?;
+            writeln!(&mut adapter)?;
         }
 
         write!(f, "}}")?;
         Ok(())
     }
 
+    // TODO: dyn or impl, both work
     /// increment id and write.
-    fn write_new_id(&self, f: &mut impl Write, state: &mut IdState) -> fmt::Result {
-        // (ugly)
+    fn write_new_id(&self, f: &mut dyn Write, state: &mut IdState) -> fmt::Result {
+        // ugly
         let new_id = match self.name.as_ref() {
             "world" => {
                 state.max_world_id += 1;
@@ -141,7 +134,7 @@ impl<K: Display, V: Display> Display for Property<K, V> {
     }
 }
 
-impl<'a> fmt::Write for PadAdapter<'a> {
+impl fmt::Write for PadAdapter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for s in s.split_inclusive('\n') {
             if self.on_newline {
@@ -153,5 +146,48 @@ impl<'a> fmt::Write for PadAdapter<'a> {
         }
 
         Ok(())
+    }
+}
+
+// most other parsing/display tests are in `parsers` module
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+
+    const INPUT: &str = r#"world {}
+world{ "id" "O_O two worlds incredibly rare/dumb but supported" }
+solid { 
+    "id" "not a number, hehe"
+    side { "id" "42" }
+    side { "id" "420" }
+    side { "id" "69" }
+}
+solid { "id" "nan" }
+entity {}
+entity { entity {} }
+"#;
+
+    #[test]
+    fn alternate() {
+        let truth_str = r#"world { "id" "1" }
+world{ "id" "2" }
+solid { 
+    "id" "1"
+    side { "id" "1" }
+    side { "id" "2" }
+    side { "id" "3" }
+}
+solid { "id" "2" }
+entity { "id" "1" }
+entity { "id" "2" entity { "id" "3" } }
+"#;
+        let truth = crate::parse::<&str, ()>(truth_str).unwrap();
+        let input = crate::parse::<&str, ()>(INPUT).unwrap();
+        let output_str = format!("{input:#}");
+        let output = crate::parse::<&str, ()>(&output_str).unwrap();
+        
+        eprintln!("{output_str}");
+        assert_eq!(truth, output);
     }
 }

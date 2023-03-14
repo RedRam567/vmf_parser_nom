@@ -46,7 +46,7 @@ ClassName_1
 //! // parse the input to a vmf, borrowing from input
 //! let vmf = parse::<&str, ()>(input).unwrap();
 //! let string = vmf.to_string();
-//! println!("vmf {vmf}")
+//! println!("vmf {vmf}");
 //! assert_eq!(input, string);
 //! 
 //! // parse to owned strings instead
